@@ -103,8 +103,9 @@ class SolarSystemSim:
         pygame.init()
         self.base_width, self.base_height = 1600, 900
         self.width, self.height = self.base_width, self.base_height
-        os.environ['SDL_VIDEO_CENTERED'] = '1'
         
+        os.environ['SDL_VIDEO_CENTERED'] = '1'
+
         self.screen = pygame.display.set_mode((self.width, self.height), pygame.RESIZABLE)
         pygame.display.set_caption("Solar System Simulator")
         self.clock = pygame.time.Clock()
@@ -206,17 +207,39 @@ class SolarSystemSim:
             while j < len(self.bodies):
                 body2 = self.bodies[j]
                 
+                # Пропускаем проверку столкновений для стабильных систем
+                # (например, Земля-Луна не должны сталкиваться)
+                stable_pairs = [{"Earth", "Moon"}, {"Sun", "Earth"}]
+                current_pair = {body1.name, body2.name}
+                if current_pair in stable_pairs:
+                    j += 1
+                    continue
+                
+                # Расстояние между центрами в метрах
                 distance = np.linalg.norm(body1.position - body2.position)
                 
-                collision_threshold = (body1.base_radius + body2.base_radius) * 1e7
+                # Упрощенный порог столкновения: основан на массе
+                # Более массивные тела имеют больший гравитационный захват
+                mass_factor = (body1.mass + body2.mass) / 1e24  # Нормализация
+                collision_threshold = AU * 0.001 * math.sqrt(mass_factor)  # ~0.1% от AU
+                
+                # Минимальный порог для предотвращения ложных срабатываний
+                min_threshold = 1e7  # 10,000 км
+                collision_threshold = max(collision_threshold, min_threshold)
                 
                 if distance < collision_threshold:
+                    # Определяем меньшее тело
                     if body1.mass < body2.mass:
                         smaller, larger = body1, body2
                         smaller_idx, larger_idx = i, j
                     else:
                         smaller, larger = body2, body1
                         smaller_idx, larger_idx = j, i
+                    
+                    # Пропускаем столкновение, если тела слишком далеко (не реалистично)
+                    if distance > AU * 0.1:  # Если больше 10% от AU - не сталкиваемся
+                        j += 1
+                        continue
                     
                     message_text = f"{smaller.name} collided into {larger.name}"
                     
@@ -227,7 +250,6 @@ class SolarSystemSim:
                         'duration': 3000
                     })
                     
-
                     self.bodies.pop(smaller_idx)
                     
                     if self.selected_body == smaller:
@@ -947,6 +969,7 @@ class SolarSystemSim:
             self.is_camera_moving = False
             self.paused = True
 
+            self.time_scale = 1.0
             # Универсальные настройки для всех пресетов
             if preset_name == "Solar System":
                 self.zoom = 0.8
@@ -1413,7 +1436,3 @@ class SolarSystemSim:
 if __name__ == "__main__":
     sim = SolarSystemSim()
     sim.run()
-
-#py -3.12 s.py 
-#py -3.12 -m pip install pygame
-#py -3.12 -m pip install pggui
