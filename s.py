@@ -206,14 +206,11 @@ class SolarSystemSim:
             while j < len(self.bodies):
                 body2 = self.bodies[j]
                 
-                # Расстояние между центрами
                 distance = np.linalg.norm(body1.position - body2.position)
                 
-                # Определяем радиусы для столкновения (используем базовый радиус для сравнения)
-                collision_threshold = (body1.base_radius + body2.base_radius) * 1e9
+                collision_threshold = (body1.base_radius + body2.base_radius) * 1e7
                 
                 if distance < collision_threshold:
-                    # Определяем меньшее тело
                     if body1.mass < body2.mass:
                         smaller, larger = body1, body2
                         smaller_idx, larger_idx = i, j
@@ -221,36 +218,29 @@ class SolarSystemSim:
                         smaller, larger = body2, body1
                         smaller_idx, larger_idx = j, i
                     
-                    # Создаем сообщение о столкновении
                     message_text = f"{smaller.name} collided into {larger.name}"
                     
-                    # Добавляем сообщение в начало списка
                     self.collision_messages.insert(0, {
                         'text': message_text,
                         'alpha': 255,
                         'start_time': pygame.time.get_ticks(),
-                        'duration': 3000  # 3 секунды
+                        'duration': 3000
                     })
                     
-                    # Удаляем только меньшее тело
+
                     self.bodies.pop(smaller_idx)
                     
-                    # Закрываем панель редактирования если удаленное тело было выбрано
                     if self.selected_body == smaller:
                         self.close_edit_panel()
-                    
-                    # Прерываем внутренний цикл и начинаем проверку заново
                     break
                 
                 j += 1
             else:
                 i += 1
                 continue
-            # Если было столкновение, начинаем проверку заново
             continue
     
     def draw_collision_messages(self):
-        """Рисует сообщения о столкновениях в правом нижнем углу"""
         current_time = pygame.time.get_ticks()
         
         # Обновляем и удаляем старые сообщения
@@ -263,25 +253,20 @@ class SolarSystemSim:
                 self.collision_messages.pop(i)
                 continue
             
-            # Вычисляем прозрачность (fadeout)
-            fade_time = msg['duration'] - 1000  # начинаем fadeout за 1 секунду до конца
+            fade_time = msg['duration'] - 1000
             if elapsed > fade_time:
                 msg['alpha'] = int(255 * (1 - (elapsed - fade_time) / 1000))
             
-            # Позиция сообщения (правая нижняя часть экрана)
             message_y = self.height - 50 - (i * 30)
             
-            # Создаем поверхность для текста с альфа-каналом
             font_size = max(12, int(14 * self.font_scale_factor))
             font = pygame.font.SysFont('Arial', font_size)
             text_surface = font.render(msg['text'], True, (255, 255, 255))
             
-            # Создаем новую поверхность с альфа-каналом
             alpha_surface = pygame.Surface(text_surface.get_size(), pygame.SRCALPHA)
             alpha_surface.blit(text_surface, (0, 0))
             alpha_surface.set_alpha(msg['alpha'])
             
-            # Позиционируем текст
             text_x = self.width - text_surface.get_width() - 20
             self.screen.blit(alpha_surface, (text_x, message_y))
             
@@ -532,7 +517,7 @@ class SolarSystemSim:
         lines = [
             "Click on an object to change its parameters",
             "Drag an object to move it",
-            "Drag a velocity vector to change its speed and direction",
+            "Drag a velocity vector to change its module and direction",
             "Use mouse wheel to zoom in/out"
         ]
         
