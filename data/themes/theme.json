@@ -1,0 +1,53 @@
+{
+    "defaults":
+    {
+        "font":
+        {
+            "name": "fira_code",
+            "size": 14,
+            "regular_path": "data/fonts/FiraCode-Regular.ttf",
+            "bold_path": "data/fonts/FiraCode-Bold.ttf",
+            "italic_path": "data/fonts/FiraCode-Italic.ttf",
+            "bold_italic_path": "data/fonts/FiraCode-BoldItalic.ttf"
+        },
+        "colours":
+        {
+            "normal_text": "#FFFFFF",
+            "dark_bg": "#202030",
+            "light_bg": "#303040",
+            "normal_border": "#8080A0"
+        }
+    },
+    "#mass_entry":
+    {
+        "colours":
+        {
+            "normal_bg": "#3A3A4A",
+            "hovered_bg": "#4A4A5A",
+            "selected_bg": "#5A5A6A",
+            "active_border": "#FFFF00"
+        }
+    },
+    "#vx_entry":
+    {
+        "colours":
+        {
+            "normal_bg": "#3A3A4A"
+        }
+    },
+    "#vy_entry":
+    {
+        "colours":
+        {
+            "normal_bg": "#3A3A4A"
+        }
+    },
+    "#delete_body_btn":
+    {
+        "colours":
+        {
+            "normal_bg": "#AA4444",
+            "hovered_bg": "#CC5555"
+        }
+    }
+}
