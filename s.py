@@ -142,8 +142,8 @@ class SolarSystemSim:
         self.current_preset = "Solar System"
         self.preset_pixel_scales = {
             "Solar System": 400 / AU,
-            "Sun-Earth-Moon": 400 / AU,
-            "Four Body Chaot": 400 / AU,
+            "Sun Earth Moon": 400 / AU,
+            "Four random bodies": 400 / AU,
             "Four Star Ballet": 400 / AU,
             "Empty": 250 / AU
         }
@@ -189,9 +189,9 @@ class SolarSystemSim:
         
         self.presets = {
             "Solar System": self.create_solar_system_data,
-            "Sun-Earth-Moon": self.create_sun_earth_moon_data_MODIFIED,
+            "Sun Earth Moon": self.create_sun_earth_moon_data_MODIFIED,
             "Four Star Ballet": self.create_four_star_ballet_data,
-            "Four Body Chaot": self.create_chaos_data,
+            "Four random bodies": self.create_chaos_data,
             "Custom": self.create_empty_data
         }
         
@@ -965,9 +965,9 @@ class SolarSystemSim:
             # Универсальные настройки для всех пресетов
             if preset_name == "Solar System":
                 self.zoom = 0.8
-            elif preset_name == "Sun-Earth-Moon":
+            elif preset_name == "Sun Earth Moon":
                 self.zoom = 0.6
-            elif preset_name == "Four Body Chaot":
+            elif preset_name == "Four random bodies":
                 self.zoom = 0.8
             elif preset_name == "Four Star Ballet":
                 self.zoom = 0.5
