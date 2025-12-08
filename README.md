@@ -5,4 +5,4 @@ Compatible with:
 2) macOS 10.15+ 
 3) Linux distributions with Python 3.8+
 
-created by Galochkin Platon a.k.a. @pentalux
+created by Galochkin P.A. a.k.a. @pentalux all rights reserved
