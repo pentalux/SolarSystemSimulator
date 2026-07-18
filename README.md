@@ -7,7 +7,7 @@ This program assists educators and students in exploring celestial mechanics and
 </p>
 
 ### Key Features
-* **Real-Time Editing:** Select any celestial body to instantly modify its name, mass, and velocity parameters on the fly.
+* **Real-Time Editing:** Select any celestial body to instantly modify its name, mass, and velocity parameters.
 * **Interactive Vectors:** Click and drag velocity vectors to directly alter orbital trajectories and experiment with physics.
 * **Built-in Scenarios:** Instantly load predefined configurations, including the Solar System, a Sun-Earth-Moon model, or chaotic n-body environments.
 * **Visual Tools:** Toggle orbital trails, display velocity vectors, and smoothly lock the camera to the system's center of mass.
