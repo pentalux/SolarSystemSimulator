@@ -101,8 +101,14 @@ class CelestialBody:
 class SolarSystemSim:
     def __init__(self):
         pygame.init()
+        
+        monitor_info = pygame.display.Info()
+        if monitor_info.current_w < 1600 or monitor_info.current_h < 900:
+            self.width, self.height = 1280, 720
+        else:
+            self.width, self.height = 1600, 900
+            
         self.base_width, self.base_height = 1600, 900
-        self.width, self.height = self.base_width, self.base_height
         
         os.environ['SDL_VIDEO_CENTERED'] = '1'
 
@@ -110,36 +116,30 @@ class SolarSystemSim:
         pygame.display.set_caption("Solar System Simulator")
         self.clock = pygame.time.Clock()
         
-        self.manager = pygame_gui.UIManager((self.width, self.height))
+        self.scale_factor = min(self.width / self.base_width, self.height / self.base_height)
         
-        # Коэффициенты масштабирования
-        self.scale_factor = 1.0
+        self.manager = pygame_gui.UIManager((self.width, self.height))
 
-        # Шрифты
         self.font_scale_factor = 1.0
         self.update_fonts()
         
-        # Состояние
         self.bodies = []
         self.paused = False
         self.show_trails = True
         self.show_vectors = True 
         self.time_scale = 1.0
         
-        # Камера
         self.offset_x = self.width // 2
         self.offset_y = self.height // 2
         self.zoom = 1.0
         self.min_zoom = 0.05
         self.max_zoom = 5.0
         
-        # Анимация камеры
         self.camera_target_x = self.offset_x
         self.camera_target_y = self.offset_y
         self.is_camera_moving = False
         self.camera_speed = 0.08
         
-        # Текущий пресет и масштабы отображения для каждого пресета
         self.current_preset = "Solar System"
         self.preset_pixel_scales = {
             "Solar System": 400 / AU,
@@ -149,20 +149,16 @@ class SolarSystemSim:
             "Empty": 250 / AU
         }
         
-        # Информационная панель
         self.show_info_panel = False
-        self.info_panel_alpha = 0  # Альфа-канал для анимации
+        self.info_panel_alpha = 0 
         self.info_panel_animation_speed = 0.15
-        self.info_panel_rect = None  # Будет установлено при показе
+        self.info_panel_rect = None  
         
-        # Состояние кнопки "i"
         self.info_button_hovered = False
         self.info_button_rect = pygame.Rect(20, 20, 40, 40)
         
-        # Состояние кнопки закрытия информационной панели
         self.info_close_button_hovered = False
         
-        # Для правильного zoom (зум к центру экрана)
         self.last_zoom = self.zoom
         self.zoom_center_x = self.width // 2
         self.zoom_center_y = self.height // 2
@@ -171,15 +167,12 @@ class SolarSystemSim:
         self.last_mouse_pos = (0, 0)
         self.active_body = None 
         
-        # Звезды
         self.stars = [Star(self.width, self.height) for _ in range(300)]
         
-        # UI элементы
         self.selected_body = None
         self.edit_panel = None
         self.ui_elements = []
         
-        # Сообщения о столкновениях
         self.collision_messages = []
         
         self.mass_entry = None
@@ -207,28 +200,20 @@ class SolarSystemSim:
             while j < len(self.bodies):
                 body2 = self.bodies[j]
                 
-                # Пропускаем проверку столкновений для стабильных систем
-                # (например, Земля-Луна не должны сталкиваться)
                 stable_pairs = [{"Earth", "Moon"}, {"Sun", "Earth"}]
                 current_pair = {body1.name, body2.name}
                 if current_pair in stable_pairs:
                     j += 1
                     continue
                 
-                # Расстояние между центрами в метрах
                 distance = np.linalg.norm(body1.position - body2.position)
+                mass_factor = (body1.mass + body2.mass) / 1e24 
+                collision_threshold = AU * 0.001 * math.sqrt(mass_factor) 
                 
-                # Упрощенный порог столкновения: основан на массе
-                # Более массивные тела имеют больший гравитационный захват
-                mass_factor = (body1.mass + body2.mass) / 1e24  # Нормализация
-                collision_threshold = AU * 0.001 * math.sqrt(mass_factor)  # ~0.1% от AU
-                
-                # Минимальный порог для предотвращения ложных срабатываний
-                min_threshold = 1e7  # 10,000 км
+                min_threshold = 1e7  
                 collision_threshold = max(collision_threshold, min_threshold)
                 
                 if distance < collision_threshold:
-                    # Определяем меньшее тело
                     if body1.mass < body2.mass:
                         smaller, larger = body1, body2
                         smaller_idx, larger_idx = i, j
@@ -236,8 +221,7 @@ class SolarSystemSim:
                         smaller, larger = body2, body1
                         smaller_idx, larger_idx = j, i
                     
-                    # Пропускаем столкновение, если тела слишком далеко (не реалистично)
-                    if distance > AU * 0.1:  # Если больше 10% от AU - не сталкиваемся
+                    if distance > AU * 0.1:
                         j += 1
                         continue
                     
@@ -265,7 +249,6 @@ class SolarSystemSim:
     def draw_collision_messages(self):
         current_time = pygame.time.get_ticks()
         
-        # Обновляем и удаляем старые сообщения
         i = 0
         while i < len(self.collision_messages):
             msg = self.collision_messages[i]
@@ -315,10 +298,11 @@ class SolarSystemSim:
         self.manager.clear_and_reset()
         self.ui_elements = []
         
+        # Чуть увеличиваем саму панель, чтобы влезли новые высоты
         panel_width = int(320 * self.scale_factor)
         panel_x = int(self.width - panel_width - 20 * self.scale_factor)
         panel_y = int(120 * self.scale_factor)
-        panel_height = int(510 * self.scale_factor)
+        panel_height = int(550 * self.scale_factor)
         panel_rect = pygame.Rect(panel_x, panel_y, panel_width, panel_height) 
         
         self.main_panel = pygame_gui.elements.UIPanel(
@@ -329,40 +313,39 @@ class SolarSystemSim:
         content_width = panel_width - int(40 * self.scale_factor)
         y_offset = int(15 * self.scale_factor)
         
-        # Заголовок
+        # Высота текста увеличена с 30 до 40
         pygame_gui.elements.UILabel(
-            relative_rect=pygame.Rect(int(20 * self.scale_factor), y_offset, content_width, int(30 * self.scale_factor)),
+            relative_rect=pygame.Rect(int(20 * self.scale_factor), y_offset, content_width, int(40 * self.scale_factor)),
             text="SIMULATION CONTROL", manager=self.manager, container=self.main_panel
         )
-        y_offset += int(40 * self.scale_factor)
+        y_offset += int(45 * self.scale_factor)
         
-        #Пресеты
         self.add_separator(y_offset)
         y_offset += int(15 * self.scale_factor)
         
+        # Высота текста увеличена с 20 до 30
         pygame_gui.elements.UILabel(
-            relative_rect=pygame.Rect(int(20 * self.scale_factor), y_offset, content_width, int(20 * self.scale_factor)),
+            relative_rect=pygame.Rect(int(20 * self.scale_factor), y_offset, content_width, int(30 * self.scale_factor)),
             text="Load Preset:", manager=self.manager, container=self.main_panel
         )
-        y_offset += int(25 * self.scale_factor)
+        y_offset += int(30 * self.scale_factor)
         
         self.preset_dropdown = pygame_gui.elements.UIDropDownMenu(
             options_list=list(self.presets.keys()),
-            starting_option="Solar System",
-            relative_rect=pygame.Rect(int(20 * self.scale_factor), y_offset, content_width, int(30 * self.scale_factor)),
+            starting_option=self.current_preset,
+            relative_rect=pygame.Rect(int(20 * self.scale_factor), y_offset, content_width, int(35 * self.scale_factor)),
             manager=self.manager, container=self.main_panel
         )
         self.ui_elements.append(self.preset_dropdown)
-        y_offset += int(40 * self.scale_factor)
+        y_offset += int(45 * self.scale_factor)
 
         self.add_body_btn = pygame_gui.elements.UIButton(
             relative_rect=pygame.Rect(int(20 * self.scale_factor), y_offset, content_width, int(40 * self.scale_factor)),
             text="Add Random Planet", manager=self.manager, container=self.main_panel
         )
         self.ui_elements.append(self.add_body_btn)
-        y_offset += int(50 * self.scale_factor)
+        y_offset += int(55 * self.scale_factor)
         
-        #Время
         self.add_separator(y_offset)
         y_offset += int(15 * self.scale_factor)
         
@@ -372,62 +355,62 @@ class SolarSystemSim:
             manager=self.manager, container=self.main_panel
         )
         self.ui_elements.append(self.play_btn)
-        y_offset += int(50 * self.scale_factor)
+        y_offset += int(55 * self.scale_factor)
         
+        # Увеличено с 25 до 35
         self.time_label = pygame_gui.elements.UILabel(
-            relative_rect=pygame.Rect(int(20 * self.scale_factor), y_offset, content_width, int(25 * self.scale_factor)),
+            relative_rect=pygame.Rect(int(20 * self.scale_factor), y_offset, content_width, int(35 * self.scale_factor)),
             text=f"Speed: {self.time_scale:.1f}x",
             manager=self.manager, container=self.main_panel
         )
         self.ui_elements.append(self.time_label)
-        y_offset += int(30 * self.scale_factor)
+        y_offset += int(35 * self.scale_factor)
         
         self.time_slider = pygame_gui.elements.UIHorizontalSlider(
-            relative_rect=pygame.Rect(int(20 * self.scale_factor), y_offset, content_width, int(25 * self.scale_factor)),
+            relative_rect=pygame.Rect(int(20 * self.scale_factor), y_offset, content_width, int(30 * self.scale_factor)),
             start_value=self.time_scale, value_range=(0.0, 5.0),
             manager=self.manager, container=self.main_panel
         )
         self.ui_elements.append(self.time_slider)
-        y_offset += int(40 * self.scale_factor)
+        y_offset += int(45 * self.scale_factor)
         
-        #Вид
         self.add_separator(y_offset)
         y_offset += int(15 * self.scale_factor)
         
+        # Увеличено с 25 до 35
         self.zoom_label = pygame_gui.elements.UILabel(
-            relative_rect=pygame.Rect(int(20 * self.scale_factor), y_offset, content_width, int(25 * self.scale_factor)),
+            relative_rect=pygame.Rect(int(20 * self.scale_factor), y_offset, content_width, int(35 * self.scale_factor)),
             text=f"Zoom: {self.zoom:.2f}x",
             manager=self.manager, container=self.main_panel
         )
         self.ui_elements.append(self.zoom_label)
-        y_offset += int(30 * self.scale_factor)
+        y_offset += int(35 * self.scale_factor)
         
         self.zoom_slider = pygame_gui.elements.UIHorizontalSlider(
-            relative_rect=pygame.Rect(int(20 * self.scale_factor), y_offset, content_width, int(25 * self.scale_factor)),
+            relative_rect=pygame.Rect(int(20 * self.scale_factor), y_offset, content_width, int(30 * self.scale_factor)),
             start_value=self.zoom, value_range=(self.min_zoom, self.max_zoom),
             manager=self.manager, container=self.main_panel
         )
         self.ui_elements.append(self.zoom_slider)
-        y_offset += int(40 * self.scale_factor)
+        y_offset += int(45 * self.scale_factor)
         
         btn_width = (content_width - int(10 * self.scale_factor)) // 2
         self.trails_check = pygame_gui.elements.UIButton(
-            relative_rect=pygame.Rect(int(20 * self.scale_factor), y_offset, btn_width, int(35 * self.scale_factor)),
+            relative_rect=pygame.Rect(int(20 * self.scale_factor), y_offset, btn_width, int(40 * self.scale_factor)),
             text="Trails: ON" if self.show_trails else "OFF",
             manager=self.manager, container=self.main_panel
         )
         self.ui_elements.append(self.trails_check)
         
         self.vectors_check = pygame_gui.elements.UIButton(
-            relative_rect=pygame.Rect(int(20 * self.scale_factor) + btn_width + int(10 * self.scale_factor), y_offset, btn_width, int(35 * self.scale_factor)),
+            relative_rect=pygame.Rect(int(20 * self.scale_factor) + btn_width + int(10 * self.scale_factor), y_offset, btn_width, int(40 * self.scale_factor)),
             text="Vectors: ON" if self.show_vectors else "OFF",
             manager=self.manager, container=self.main_panel
         )
         self.ui_elements.append(self.vectors_check)
         
-        y_offset += int(45 * self.scale_factor)
+        y_offset += int(50 * self.scale_factor)
         
-        # Кнопка для перемещения камеры в центр масс
         self.center_camera_btn = pygame_gui.elements.UIButton(
             relative_rect=pygame.Rect(int(20 * self.scale_factor), y_offset, content_width, int(40 * self.scale_factor)),
             text="Move To Center Of Mass",
@@ -449,7 +432,6 @@ class SolarSystemSim:
         if not self.show_info_panel and self.info_panel_alpha <= 0:
             return
         
-        #альфа-канал для анимации
         if self.show_info_panel:
             self.info_panel_alpha = min(255, self.info_panel_alpha + 255 * self.info_panel_animation_speed)
         else:
@@ -463,7 +445,6 @@ class SolarSystemSim:
         panel_x = self.width // 2 - panel_width // 2
         panel_y = self.height // 2 - panel_height // 2
         
-        # Эффект появления (увеличение)
         scale_factor_anim = 0.7 + 0.3 * (self.info_panel_alpha / 255)
         current_width = int(panel_width * scale_factor_anim)
         current_height = int(panel_height * scale_factor_anim)
@@ -472,13 +453,11 @@ class SolarSystemSim:
         
         self.info_panel_rect = pygame.Rect(current_x, current_y, current_width, current_height)
         
-        # Полупрозрачный фон
         overlay_alpha = int(128 * (self.info_panel_alpha / 255))
         overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
         overlay.fill((0, 0, 0, overlay_alpha))
         self.screen.blit(overlay, (0, 0))
         
-        # Основная панель
         panel_surface = pygame.Surface((current_width, current_height), pygame.SRCALPHA)
         panel_color = (30, 35, 50, self.info_panel_alpha)
         border_color = (60, 70, 100, self.info_panel_alpha)
@@ -491,7 +470,6 @@ class SolarSystemSim:
         pygame.draw.rect(panel_surface, border_color, (0, 0, current_width, current_height), 
                         border_width, border_radius=border_radius)
         
-        # Заголовок
         title_font_size = max(18, int(24 * self.font_scale_factor * scale_factor_anim))
         title_font = pygame.font.SysFont('Arial', title_font_size)
         title_text = title_font.render("CONTROLS GUIDE", True, (255, 255, 255))
@@ -512,7 +490,6 @@ class SolarSystemSim:
             close_rect_size
         )
         
-        # Цвет кнопки закрытия зависит от наведения
         close_color = (255, 100, 100) if self.info_close_button_hovered else (200, 80, 80)
         close_color_with_alpha = (*close_color, self.info_panel_alpha)
         
@@ -535,7 +512,6 @@ class SolarSystemSim:
         
         panel_surface.blit(close_surface, (close_rect_x, close_rect_y))
         
-        # Содержимое
         lines = [
             "Click on an object to change its parameters",
             "Drag an object to move it",
@@ -577,7 +553,7 @@ class SolarSystemSim:
         body = self.selected_body
         
         panel_width = int(300 * self.scale_factor)
-        panel_height = int(400 * self.scale_factor)
+        panel_height = int(450 * self.scale_factor)
         panel_rect = pygame.Rect(int(20 * self.scale_factor), 
                                 self.height - panel_height - int(20 * self.scale_factor), 
                                 panel_width, panel_height)
@@ -590,80 +566,76 @@ class SolarSystemSim:
         content_width = panel_width - int(40 * self.scale_factor)
         y_offset = int(15 * self.scale_factor)
         
-        # Заголовок
         pygame_gui.elements.UILabel(
-            relative_rect=pygame.Rect(int(20 * self.scale_factor), y_offset, content_width, int(30 * self.scale_factor)),
+            relative_rect=pygame.Rect(int(20 * self.scale_factor), y_offset, content_width, int(40 * self.scale_factor)),
             text=f"EDIT: {body.name.upper()}",
             manager=self.manager, container=self.edit_panel
         )
-        y_offset += int(40 * self.scale_factor)
+        y_offset += int(45 * self.scale_factor)
         
-        # Поле для изменения имени
         pygame_gui.elements.UILabel(
-            relative_rect=pygame.Rect(int(20 * self.scale_factor), y_offset, content_width, int(20 * self.scale_factor)),
+            relative_rect=pygame.Rect(int(20 * self.scale_factor), y_offset, content_width, int(30 * self.scale_factor)),
             text=f"Name:", manager=self.manager, container=self.edit_panel
         )
-        y_offset += int(20 * self.scale_factor)
+        y_offset += int(30 * self.scale_factor)
         self.name_entry = pygame_gui.elements.UITextEntryLine(
-            relative_rect=pygame.Rect(int(20 * self.scale_factor), y_offset, content_width, int(30 * self.scale_factor)),
+            relative_rect=pygame.Rect(int(20 * self.scale_factor), y_offset, content_width, int(35 * self.scale_factor)),
             manager=self.manager, container=self.edit_panel
         )
         self.name_entry.set_text(f"{body.name}")
         self.name_entry.set_text_length_limit(15)
-        y_offset += int(40 * self.scale_factor)
+        y_offset += int(45 * self.scale_factor)
         
-        # Mass
         pygame_gui.elements.UILabel(
-            relative_rect=pygame.Rect(int(20 * self.scale_factor), y_offset, content_width, int(20 * self.scale_factor)),
+            relative_rect=pygame.Rect(int(20 * self.scale_factor), y_offset, content_width, int(30 * self.scale_factor)),
             text=f"Mass (kg):", manager=self.manager, container=self.edit_panel
         )
-        y_offset += int(20 * self.scale_factor)
+        y_offset += int(30 * self.scale_factor)
         self.mass_entry = pygame_gui.elements.UITextEntryLine(
-            relative_rect=pygame.Rect(int(20 * self.scale_factor), y_offset, content_width, int(30 * self.scale_factor)),
+            relative_rect=pygame.Rect(int(20 * self.scale_factor), y_offset, content_width, int(35 * self.scale_factor)),
             manager=self.manager, container=self.edit_panel
         )
         self.mass_entry.set_text(f"{body.mass:.2e}")
-        y_offset += int(40 * self.scale_factor)
+        y_offset += int(45 * self.scale_factor)
         
         speed = np.linalg.norm(body.velocity)
         pygame_gui.elements.UILabel(
-            relative_rect=pygame.Rect(int(20 * self.scale_factor), y_offset, content_width, int(20 * self.scale_factor)),
+            relative_rect=pygame.Rect(int(20 * self.scale_factor), y_offset, content_width, int(30 * self.scale_factor)),
             text=f"Speed (m/s):", manager=self.manager, container=self.edit_panel
         )
-        y_offset += int(20 * self.scale_factor)
+        y_offset += int(30 * self.scale_factor)
         self.speed_entry = pygame_gui.elements.UITextEntryLine(
-            relative_rect=pygame.Rect(int(20 * self.scale_factor), y_offset, content_width, int(30 * self.scale_factor)),
+            relative_rect=pygame.Rect(int(20 * self.scale_factor), y_offset, content_width, int(35 * self.scale_factor)),
             manager=self.manager, container=self.edit_panel
         )
         self.speed_entry.set_text(f"{speed:.1f}")
-        y_offset += int(40 * self.scale_factor)
+        y_offset += int(45 * self.scale_factor)
 
-        # Components (для точности)
         half_w = (content_width - int(10 * self.scale_factor)) // 2
         pygame_gui.elements.UILabel(
-            relative_rect=pygame.Rect(int(20 * self.scale_factor), y_offset, half_w, int(20 * self.scale_factor)),
+            relative_rect=pygame.Rect(int(20 * self.scale_factor), y_offset, half_w, int(30 * self.scale_factor)),
             text="Vel X:", manager=self.manager, container=self.edit_panel
         )
         pygame_gui.elements.UILabel(
             relative_rect=pygame.Rect(int(20 * self.scale_factor) + half_w + int(10 * self.scale_factor), 
-                                    y_offset, half_w, int(20 * self.scale_factor)),
+                                    y_offset, half_w, int(30 * self.scale_factor)),
             text="Vel Y:", manager=self.manager, container=self.edit_panel
         )
-        y_offset += int(20 * self.scale_factor)
+        y_offset += int(30 * self.scale_factor)
         
         self.vx_entry = pygame_gui.elements.UITextEntryLine(
-            relative_rect=pygame.Rect(int(20 * self.scale_factor), y_offset, half_w, int(30 * self.scale_factor)),
+            relative_rect=pygame.Rect(int(20 * self.scale_factor), y_offset, half_w, int(35 * self.scale_factor)),
             manager=self.manager, container=self.edit_panel
         )
         self.vx_entry.set_text(f"{body.velocity[0]:.1f}")
         
         self.vy_entry = pygame_gui.elements.UITextEntryLine(
             relative_rect=pygame.Rect(int(20 * self.scale_factor) + half_w + int(10 * self.scale_factor), 
-                                    y_offset, half_w, int(30 * self.scale_factor)),
+                                    y_offset, half_w, int(35 * self.scale_factor)),
             manager=self.manager, container=self.edit_panel
         )
         self.vy_entry.set_text(f"{body.velocity[1]:.1f}")
-        y_offset += int(40 * self.scale_factor)
+        y_offset += int(50 * self.scale_factor)
         
         self.delete_btn = pygame_gui.elements.UIButton(
             relative_rect=pygame.Rect(int(20 * self.scale_factor), y_offset, content_width, int(40 * self.scale_factor)),
@@ -728,16 +700,13 @@ class SolarSystemSim:
         return []
 
     def create_solar_system_data(self):
-        # Реальные орбитальные параметры планет (эксцентриситет и наклонение упрощены)
         bodies = []
         
-        # Солнце
         bodies.append(CelestialBody(
             "Sun", 1.989e30, (0, 0), (0, 0), 
             (255, 220, 80), 30
         ))
         
-        # Меркурий
         mercury_eccentricity = 0.2056
         mercury_semi_major = 0.387 * AU
         mercury_perihelion = mercury_semi_major * (1 - mercury_eccentricity)
@@ -750,7 +719,6 @@ class SolarSystemSim:
             (160, 160, 160), 4
         ))
         
-        # Венера
         venus_eccentricity = 0.0067
         venus_semi_major = 0.723 * AU
         venus_perihelion = venus_semi_major * (1 - venus_eccentricity)
@@ -763,7 +731,6 @@ class SolarSystemSim:
             (220, 180, 140), 7
         ))
         
-        # Земля
         earth_eccentricity = 0.0167
         earth_semi_major = 1.0 * AU
         earth_perihelion = earth_semi_major * (1 - earth_eccentricity)
@@ -776,7 +743,6 @@ class SolarSystemSim:
             (100, 150, 255), 7
         ))
         
-        # Марс
         mars_eccentricity = 0.0935
         mars_semi_major = 1.524 * AU
         mars_perihelion = mars_semi_major * (1 - mars_eccentricity)
@@ -789,7 +755,6 @@ class SolarSystemSim:
             (255, 80, 80), 5
         ))
         
-        # Юпитер
         jupiter_eccentricity = 0.0489
         jupiter_semi_major = 5.203 * AU
         jupiter_perihelion = jupiter_semi_major * (1 - jupiter_eccentricity)
@@ -802,7 +767,6 @@ class SolarSystemSim:
             (200, 180, 150), 16
         ))
         
-        # Сатурн
         saturn_eccentricity = 0.0565
         saturn_semi_major = 9.537 * AU
         saturn_perihelion = saturn_semi_major * (1 - saturn_eccentricity)
@@ -815,7 +779,6 @@ class SolarSystemSim:
             (230, 200, 100), 14
         ))
         
-        # Уран
         uranus_eccentricity = 0.0457
         uranus_semi_major = 19.191 * AU
         uranus_perihelion = uranus_semi_major * (1 - uranus_eccentricity)
@@ -828,7 +791,6 @@ class SolarSystemSim:
             (150, 220, 255), 12
         ))
         
-        # Нептун
         neptune_eccentricity = 0.0113
         neptune_semi_major = 30.069 * AU
         neptune_perihelion = neptune_semi_major * (1 - neptune_eccentricity)
@@ -955,13 +917,12 @@ class SolarSystemSim:
 
     def load_preset(self, preset_name):
         self.bodies = []
-        self.collision_messages = []  # Очищаем сообщения о столкновениях
+        self.collision_messages = []
         self.current_preset = preset_name
         
         if preset_name in self.presets:
             self.bodies = self.presets[preset_name]()
             
-            # Сброс камеры и состояния
             self.offset_x = self.width // 2
             self.offset_y = self.height // 2
             self.camera_target_x = self.offset_x
@@ -970,7 +931,6 @@ class SolarSystemSim:
             self.paused = True
 
             self.time_scale = 1.0
-            # Универсальные настройки для всех пресетов
             if preset_name == "Solar System":
                 self.zoom = 0.8
             elif preset_name == "Sun Earth Moon":
@@ -983,7 +943,6 @@ class SolarSystemSim:
             elif preset_name == "Empty":
                 self.zoom = 1.0
                 
-            # Обновление UI элементов
             if hasattr(self, 'play_btn'):
                 self.play_btn.set_text("PAUSE" if not self.paused else "RESUME")
             if hasattr(self, 'zoom_slider'):
@@ -1058,7 +1017,6 @@ class SolarSystemSim:
         pygame.draw.rect(self.screen, (30, 35, 45), title_rect, border_radius=border_radius)
         pygame.draw.rect(self.screen, (60, 70, 90), title_rect, border_width, border_radius=border_radius)
         
-        #уже масштабированные шрифты
         title_text = self.font_title.render("SOLAR SYSTEM SIMULATOR", True, (255, 255, 255))
         title_text_y = title_y + int(20 * self.scale_factor)
         self.screen.blit(title_text, (self.width // 2 - title_text.get_width() // 2, title_text_y))
@@ -1078,7 +1036,6 @@ class SolarSystemSim:
             self.zoom /= 1.1
         self.zoom = max(self.min_zoom, min(self.max_zoom, self.zoom))
         
-        # Если zoom изменился
         if old_zoom != self.zoom:
             zoom_factor = self.zoom / old_zoom
             
@@ -1098,10 +1055,8 @@ class SolarSystemSim:
         mouse_pos = pygame.mouse.get_pos()
         pixel_scale = self.get_current_pixel_scale()
         
-        # Обновление состояния наведения на кнопку "i"
         self.info_button_hovered = self.info_button_rect.collidepoint(mouse_pos) if hasattr(self, 'info_button_rect') else False
         
-        # Обновление состояния наведения на кнопку закрытия информационной панели
         self.info_close_button_hovered = False
         if self.show_info_panel and hasattr(self, 'close_button_rect') and self.close_button_rect:
             self.info_close_button_hovered = self.close_button_rect.collidepoint(mouse_pos)
@@ -1116,13 +1071,9 @@ class SolarSystemSim:
             self.manager.process_events(event)
             
             if event.type == pygame.VIDEORESIZE:
-                new_width = max(1600, event.w)
-                new_height = max(900, event.h)
-                if event.w < 1600 or event.h < 900:
-                    self.screen = pygame.display.set_mode((new_width, new_height), pygame.RESIZABLE)
-                    self.width, self.height = new_width, new_height
-                else:
-                    self.width, self.height = event.w, event.h
+                self.width = max(1024, event.w)
+                self.height = max(576, event.h)
+                self.screen = pygame.display.set_mode((self.width, self.height), pygame.RESIZABLE)
                 
                 width_scale = self.width / self.base_width
                 height_scale = self.height / self.base_height
@@ -1228,14 +1179,12 @@ class SolarSystemSim:
                         self.vy_entry.set_text(f"{new_vy:.1f}")
                         self.speed_entry.set_text(f"{np.linalg.norm([new_vx, new_vy]):.1f}")
 
-            # Обработка клавиши Space для паузы
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
                     self.paused = not self.paused
                     if hasattr(self, 'play_btn'):
                         self.play_btn.set_text("PAUSE" if not self.paused else "RESUME")
 
-            #UI EVENTS
             if event.type == pygame_gui.UI_BUTTON_PRESSED:
                 if event.ui_element == self.play_btn:
                     self.paused = not self.paused
@@ -1316,7 +1265,6 @@ class SolarSystemSim:
     def draw(self):
         self.screen.fill((5, 8, 15))
         
-        # Звезды
         for star in self.stars:
             sx = (star.x + self.offset_x * 0.05 * star.z) % self.width
             sy = (star.y + self.offset_y * 0.05 * star.z) % self.height
@@ -1324,7 +1272,6 @@ class SolarSystemSim:
 
         pixel_scale = self.get_current_pixel_scale()
         
-        # Траектории
         if self.show_trails:
             for body in self.bodies:
                 if len(body.trail) > 1:
@@ -1342,7 +1289,6 @@ class SolarSystemSim:
                         else:
                             pygame.draw.lines(self.screen, body.color, False, screen_points, 1)
 
-        # Планеты
         for body in self.bodies:
             sx, sy = body.get_screen_pos(self.offset_x, self.offset_y, self.zoom, pixel_scale, 1.0)
             radius = body.get_draw_radius(self.zoom, 1.0)
@@ -1365,10 +1311,8 @@ class SolarSystemSim:
                     txt = self.font_name.render(body.name, True, (200, 200, 200))
                     self.screen.blit(txt, (sx + radius + 5, sy - 5))
         
-        # Сообщения о столкновениях (рисуем после планет, но перед UI)
         self.draw_collision_messages()
         
-        # Кнопка информации с эффектом наведения
         button_center_x = int(40 * self.scale_factor)
         button_center_y = int(40 * self.scale_factor)
         button_radius = int(20 * self.scale_factor)
@@ -1389,7 +1333,6 @@ class SolarSystemSim:
         self.screen.blit(info_text, (button_center_x - info_text.get_width()//2, 
                                     button_center_y - info_text.get_height()//2))
         
-        # Информационная панель (если открыта или в процессе анимации)
         self.draw_info_panel()
         
         self.draw_title_bar()
@@ -1398,7 +1341,6 @@ class SolarSystemSim:
 
     def update_physics(self):
         if not self.paused and self.interaction_mode != 'drag_body':
-            # Проверяем столкновения перед обновлением физики
             self.check_collisions()
             
             has_moon = any(body.name == "Moon" for body in self.bodies)
