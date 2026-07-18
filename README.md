@@ -2,7 +2,7 @@
 
 This program assists educators and students in exploring celestial mechanics and gravitational systems. It enables real-time visualization of n-body gravitational interactions with physical accuracy, allowing users to simulate various solar system configurations, from simple planetary orbits to complex chaotic systems.
 
-<p align="center">
+<p align="left">
   <img src="demo.gif" alt="Celestial Mechanics Simulation Demo" width="600">
 </p>
 
